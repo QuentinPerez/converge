@@ -34,14 +34,16 @@ const (
 
 // User manages user users
 type User struct {
-	Username  string
-	UID       string
-	GroupName string
-	GID       string
-	Name      string
-	HomeDir   string
-	State     State
-	system    SystemUtils
+	Username    string
+	NewUsername string
+	UID         string
+	GroupName   string
+	GID         string
+	Name        string
+	HomeDir     string
+	MoveDir     bool
+	State       State
+	system      SystemUtils
 }
 
 // AddUserOptions are the options specified in the configuration to be used
@@ -53,10 +55,21 @@ type AddUserOptions struct {
 	Directory string
 }
 
+// ModUserOptions are the options specified in the configuration to be used
+// when modifying a user
+type ModUserOptions struct {
+	UID       string
+	Group     string
+	Comment   string
+	Directory string
+	MoveDir   bool
+}
+
 // SystemUtils provides system utilities for user
 type SystemUtils interface {
 	AddUser(userName string, options *AddUserOptions) error
 	DelUser(userName string) error
+	ModUser(userName string, options *ModUserOptions) error
 	Lookup(userName string) (*user.User, error)
 	LookupID(userID string) (*user.User, error)
 	LookupGroup(groupName string) (*user.Group, error)
@@ -333,6 +346,36 @@ func SetAddUserOptions(u *User) *AddUserOptions {
 
 	if u.HomeDir != "" {
 		options.Directory = u.HomeDir
+	}
+
+	return options
+}
+
+// SetModUserOptions returns a ModUserOptions struct with the options
+// specified in the configuration for modifying a user
+func SetModUserOptions(u *User) *ModUserOptions {
+	options := new(ModUserOptions)
+
+	if u.UID != "" {
+		options.UID = u.UID
+	}
+
+	switch {
+	case u.GroupName != "":
+		options.Group = u.GroupName
+	case u.GID != "":
+		options.Group = u.GID
+	}
+
+	if u.Name != "" {
+		options.Comment = u.Name
+	}
+
+	if u.HomeDir != "" {
+		options.Directory = u.HomeDir
+		if u.MoveDir {
+			options.MoveDir = true
+		}
 	}
 
 	return options

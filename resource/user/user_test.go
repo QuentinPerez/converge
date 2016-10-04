@@ -820,6 +820,79 @@ func TestSetAddUserOptions(t *testing.T) {
 	})
 }
 
+// TestSetModUserOptions tests options provided for modifying a user
+// are properly set
+func TestSetModUserOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("all options", func(t *testing.T) {
+		u := user.NewUser(new(user.System))
+		u.Username = fakeUsername
+		u.UID = fakeUID
+		u.GID = fakeGID
+		u.Name = "test"
+		u.HomeDir = "testDir"
+		u.MoveDir = true
+
+		options := user.SetModUserOptions(u)
+
+		assert.Equal(t, u.UID, options.UID)
+		assert.Equal(t, u.GID, options.Group)
+		assert.Equal(t, u.Name, options.Comment)
+		assert.Equal(t, u.HomeDir, options.Directory)
+		assert.Equal(t, u.MoveDir, options.MoveDir)
+	})
+
+	t.Run("group options", func(t *testing.T) {
+		u := user.NewUser(new(user.System))
+		u.Username = fakeUsername
+		u.GroupName = fakeGroupName
+		u.GID = fakeGID
+
+		options := user.SetModUserOptions(u)
+
+		assert.Equal(t, u.GroupName, options.Group)
+	})
+
+	t.Run("no options", func(t *testing.T) {
+		u := user.NewUser(new(user.System))
+		u.Username = fakeUsername
+
+		options := user.SetModUserOptions(u)
+
+		assert.Equal(t, "", options.UID)
+		assert.Equal(t, "", options.Group)
+		assert.Equal(t, "", options.Comment)
+		assert.Equal(t, "", options.Directory)
+		assert.Equal(t, false, options.MoveDir)
+	})
+
+	t.Run("HomeDir and MoveDir", func(t *testing.T) {
+		t.Run("only HomeDir", func(t *testing.T) {
+			u := user.NewUser(new(user.System))
+			u.Username = fakeUsername
+			u.HomeDir = "testDir"
+
+			options := user.SetModUserOptions(u)
+
+			assert.Equal(t, u.HomeDir, options.Directory)
+			assert.Equal(t, false, options.MoveDir)
+		})
+
+		t.Run("only MoveDir", func(t *testing.T) {
+			u := user.NewUser(new(user.System))
+			u.Username = fakeUsername
+			u.MoveDir = true
+
+			options := user.SetModUserOptions(u)
+
+			assert.Equal(t, "", options.Directory)
+			assert.Equal(t, false, options.MoveDir)
+		})
+	})
+
+}
+
 // setUid is used to find a uid that exists, but is not
 // a match for the current user name (currUsername).
 func setUid() (string, error) {
@@ -883,6 +956,12 @@ func (m *MockSystem) AddUser(name string, options *user.AddUserOptions) error {
 // DelUser deletes a user
 func (m *MockSystem) DelUser(name string) error {
 	args := m.Called(name)
+	return args.Error(0)
+}
+
+// ModUser modifies a user
+func (m *MockSystem) ModUser(name string, options *user.ModUserOptions) error {
+	args := m.Called(name, options)
 	return args.Error(0)
 }
 
