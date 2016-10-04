@@ -142,12 +142,12 @@ func (r *Renderer) paramMap(name string) (map[string]interface{}, error) {
 func (r *Renderer) paramRawValue(name string) (interface{}, error) {
 	ancestor, found := getNearestAncestor(r.Graph(), r.ID, "param."+name)
 	if !found {
-		return "", errors.New("param not found")
+		return "", errors.New("param not found (no such ancestor)")
 	}
 	task, ok := resource.ResolveTask(r.Graph().Get(ancestor))
 
-	if task == nil || !ok {
-		return "", errors.New("param not found")
+	if val == nil || !ok {
+		return "", errors.New("param not found (value is nil)")
 	}
 
 	if _, ok := task.(*PrepareThunk); ok {
@@ -167,10 +167,8 @@ func (r *Renderer) paramRawValue(name string) (interface{}, error) {
 func (r *Renderer) lookup(name string) (string, error) {
 	g := r.Graph()
 	// fully-qualified graph name
-
 	fqgn := graph.SiblingID(r.ID, name)
-	vertexName, terms, found := preprocessor.VertexSplit(g, fqgn)
-
+	vertexName, terms, found := preprocessor.VertexSplitTraverse(g, name, r.ID, preprocessor.TraverseUntilModule, make(map[string]struct{}))
 	if !found {
 		return "", fmt.Errorf("%s does not resolve to a valid node", fqgn)
 	}
