@@ -25,6 +25,7 @@ import (
 	"github.com/asteris-llc/converge/helpers/fakerenderer"
 	"github.com/asteris-llc/converge/resource"
 	"github.com/asteris-llc/converge/resource/module"
+	"github.com/asteris-llc/converge/transform"
 	"github.com/pkg/errors"
 )
 
@@ -38,7 +39,7 @@ func Render(ctx context.Context, g *graph.Graph, top Values) (*graph.Graph, erro
 		return nil, err
 	}
 
-	return g.RootDepthTransform(ctx, func(id string, out *graph.Graph) error {
+	rendered, err := g.RootDepthTransform(ctx, func(id string, out *graph.Graph) error {
 		pipeline := Pipeline(out, id, renderingPlant, top)
 		value, err := pipeline.Exec(out.Get(id))
 		if err != nil {
@@ -48,6 +49,10 @@ func Render(ctx context.Context, g *graph.Graph, top Values) (*graph.Graph, erro
 		renderingPlant.Graph = out
 		return nil
 	})
+	if err != nil {
+		return rendered, err
+	}
+	return transform.ResolveConditionals(ctx, rendered)
 }
 
 type pipelineGen struct {
