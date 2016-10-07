@@ -799,6 +799,130 @@ will walk over them as nodes.</p>
 </figure>
 
 
+<h2 id="conditional-evaluation">Conditional Evaluation</h2>
+
+<p>Converge supports the ability to conditionally execute a set of actions
+depending on the value of expressions that are evaluated at runtime.  This
+allows you to create a single converge file that will operate differently
+depending on parameters passed to coverge at execution time, information present
+about the system during run time, or the status of other processes that have
+executed.  If you are already familiar with <code>switch</code> statements from other
+languages you may wish to skip ahead to the section on <em>Rules of Conditionals</em></p>
+
+<p>To understand how this works, let&rsquo;s consider the following example:  You wish to
+create a file, <code>greeting.txt</code> that contains a greeting like <code>hello</code>, however you
+want to be aware of the users preferred language so you would like to ensure
+that the content of the greeting file is in an appropriate language.  Let&rsquo;s look
+at an example, <code>helloLanguages.hcl</code>:</p>
+
+<pre><code class="language-hcl">param &quot;lang&quot; {
+  default = &quot;&quot;
+}
+switch &quot;test-switch&quot; {
+  case &quot;eq `spanish` `{{param `lang`}}`&quot; &quot;spanish&quot; {
+    file.content &quot;foo-file&quot; {
+      destination = &quot;greeting.txt&quot;
+      content     = &quot;hola\n&quot;
+    }
+  }
+  case &quot;eq `french` `{{param `lang`}}`&quot; &quot;french&quot; {
+    file.content &quot;foo-file&quot; {
+      destination = &quot;greeting.txt&quot;
+      content     = &quot;salut\n&quot;
+    }
+  }
+  case &quot;eq `japanese` `{{param `lang`}}`&quot; &quot;japanese&quot; {
+    file.content &quot;foo-file&quot; {
+      destination = &quot;greeting.txt&quot;
+      content     = &quot;もしもし\n&quot;
+    }
+  }
+  default {
+    file.content &quot;foo-file&quot; {
+      destination = &quot;greeting.txt&quot;
+      content     = &quot;hello\n&quot;
+    }
+  }
+}
+</code></pre>
+
+<p>Here we define a <em>conditional</em> clause using the keyword <code>switch</code>, which contains
+several <em>branches</em>, defined with they keyword <code>case</code>.  Each <em>branch</em> contains
+one or more <em>child</em> resources that define what should happen when the <em>branch</em>
+is executed.</p>
+
+<p>Let&rsquo;s graph this file and get an idea of how it looks:</p>
+
+<p><code>converge graph --local helloLanguages.hcl | dot -Tpng -o hello-languages.png</code></p>
+
+
+<figure >
+    
+        <img src="http://converge.aster.is/images/getting-started/hello-languages.png" alt="A graph displaying many possible branches." />
+    
+    
+    <figcaption>
+        <p>
+        A graph displaying many possible branches.
+        
+            
+        
+        </p> 
+    </figcaption>
+    
+</figure>
+
+
+<p>We can see that our <code>switch</code> and <code>case</code> statements are each transformed into
+<em>macro expressions</em> in the graph, denoted by their names.  Each of these nodes
+represent a potential runnable action on the system.  The determination of what,
+if any, of these actions will be run is dependent on the results of branch
+evaluation.</p>
+
+<p><em>Branch evaluation</em> refers to the process of evaluating a <em>predicate</em> to
+determine whether a branch may be run, and if so looking at the other branches
+to determine whether the current branch has priority.  Branches are evaluated
+top-to-bottom and the first branch that is true will be the one that is
+executed.  The special branch <code>default</code> is one whose predicate will always
+evaluate to <code>true</code>.</p>
+
+<div class="admonition note">
+<p class="admonition-title">Fall-Through</p>
+<p>If you&rsquo;re familiar with <code>switch</code> statments in other languages you should keep in
+mind that converge branches do not support fall-through.  You do not need to
+specify <code>break</code> to end a <code>case</code> statement, and there is no supported way of
+evaluating multiple branches in a single <code>switch</code> statement. The first
+(top-to-bottom) <code>case</code> with a true <code>predicate</code> is the one that is evalauted.</p>
+</div>
+
+<p>*predicate*s are evaluated like other templates in converge, and may reference
+<code>param</code>s, and perform <code>lookup</code>s on other values in the system.  A <em>predicate</em>
+may not reference any of it&rsquo;s <em>child</em> resourceses.  The value of the predicate
+is it&rsquo;s truth value:  The strings <code>t</code> and <code>true</code> (case insensitive) are <code>true</code>
+values and will cause the <em>branch</em> to be evaluated.  The strings <code>f</code> and <code>false</code>
+(case insensitive) will cause the <em>branch</em> to remain unevaluated.  Any other
+value is an error.</p>
+
+<h3 id="rules-of-conditionals">Rules of Conditionals</h3>
+
+<ul>
+<li><code>switch</code> statements must have a name</li>
+<li><code>case</code> statements must have a name and a predicate</li>
+<li><code>case</code> statements may not be named <em>case</em>, <em>switch</em>, or <em>default</em></li>
+<li><code>default</code> statements must not have a name or a predicate</li>
+<li>predicates must evaluate to one of: <em>t</em>, <em>true</em>, <em>f</em>, <em>false</em></li>
+<li>branches may not contain <code>module</code> references</li>
+<li>predicates may reference <code>param</code>s and <code>lookup</code> resources outside of the
+switch statement</li>
+<li>child nodes may refrence <code>param</code>s and <code>lookup</code> resources outside of the
+switch statement or within the same branch</li>
+<li>no resource may reference anything that is part of a branch that it does not
+belong to</li>
+<li>root and module level resources may not reference fields inside of a switch
+statement</li>
+<li>only the first (top-to-bottom) true branch of a switch will be evaluated</li>
+</ul>
+
 <h2 id="what-s-next">What&rsquo;s Next?</h2>
 
 <p>A great next step is to try and make something simple with Converge! Try
