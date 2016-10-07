@@ -146,7 +146,7 @@ func (r *Renderer) paramRawValue(name string) (interface{}, error) {
 	}
 	task, ok := resource.ResolveTask(r.Graph().Get(ancestor))
 
-	if val == nil || !ok {
+	if task == nil || !ok {
 		return "", errors.New("param not found (value is nil)")
 	}
 
