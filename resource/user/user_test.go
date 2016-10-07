@@ -115,60 +115,14 @@ func TestCheck(t *testing.T) {
 		u.State = user.StatePresent
 
 		t.Run("uid not provided", func(t *testing.T) {
-			t.Run("no add-user already exists", func(t *testing.T) {
-				u.Username = currUsername
-				status, err := u.Check(fakerenderer.New())
-
-				if runtime.GOOS == "linux" {
-					assert.NoError(t, err)
-					assert.Equal(t, resource.StatusNoChange, status.StatusCode())
-					assert.Equal(t, fmt.Sprintf("user %s already exists", u.Username), status.Messages()[0])
-					assert.False(t, status.HasChanges())
-				} else {
-					assert.EqualError(t, err, "user: not supported on this system")
-				}
-			})
-
-			t.Run("add user", func(t *testing.T) {
-				u.Username = fakeUsername
-				status, err := u.Check(fakerenderer.New())
-
-				if runtime.GOOS == "linux" {
-					assert.NoError(t, err)
-					assert.Equal(t, "user does not exist", status.Messages()[0])
-					assert.Equal(t, resource.StatusWillChange, status.StatusCode())
-					assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
-					assert.Equal(t, fmt.Sprintf("user %s", u.Username), status.Diffs()["user"].Current())
-					assert.True(t, status.HasChanges())
-				} else {
-					assert.EqualError(t, err, "user: not supported on this system")
-				}
-			})
-
-			t.Run("group provided", func(t *testing.T) {
-				t.Run("no add-group name does not exist", func(t *testing.T) {
+			t.Run("add tests", func(t *testing.T) {
+				t.Run("add user", func(t *testing.T) {
 					u.Username = fakeUsername
-					u.GroupName = fakeGroupName
-					status, err := u.Check(fakerenderer.New())
-
-					if runtime.GOOS == "linux" {
-						assert.EqualError(t, err, fmt.Sprintf("cannot add user %s", u.Username))
-						assert.Equal(t, resource.StatusCantChange, status.StatusCode())
-						assert.Equal(t, fmt.Sprintf("group %s does not exist", u.GroupName), status.Messages()[0])
-						assert.True(t, status.HasChanges())
-					} else {
-						assert.EqualError(t, err, "user: not supported on this system")
-					}
-				})
-
-				t.Run("add user with group name", func(t *testing.T) {
-					u.Username = fakeUsername
-					u.GroupName = currGroupName
 					status, err := u.Check(fakerenderer.New())
 
 					if runtime.GOOS == "linux" {
 						assert.NoError(t, err)
-						assert.Equal(t, "user does not exist", status.Messages()[0])
+						assert.Equal(t, "add user", status.Messages()[0])
 						assert.Equal(t, resource.StatusWillChange, status.StatusCode())
 						assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
 						assert.Equal(t, fmt.Sprintf("user %s", u.Username), status.Diffs()["user"].Current())
@@ -178,33 +132,82 @@ func TestCheck(t *testing.T) {
 					}
 				})
 
-				t.Run("no add-group gid does not exist", func(t *testing.T) {
-					u.Username = fakeUsername
-					u.GID = fakeGID
-					status, err := u.Check(fakerenderer.New())
+				t.Run("group provided", func(t *testing.T) {
+					t.Run("no add-group name does not exist", func(t *testing.T) {
+						u.Username = fakeUsername
+						u.GroupName = fakeGroupName
+						status, err := u.Check(fakerenderer.New())
 
-					if runtime.GOOS == "linux" {
-						assert.EqualError(t, err, fmt.Sprintf("cannot add user %s", u.Username))
-						assert.Equal(t, resource.StatusCantChange, status.StatusCode())
-						assert.Equal(t, fmt.Sprintf("group gid %s does not exist", u.GID), status.Messages()[0])
-						assert.True(t, status.HasChanges())
-					} else {
-						assert.EqualError(t, err, "user: not supported on this system")
-					}
+						if runtime.GOOS == "linux" {
+							assert.EqualError(t, err, fmt.Sprintf("cannot add user %s", u.Username))
+							assert.Equal(t, resource.StatusCantChange, status.StatusCode())
+							assert.Equal(t, fmt.Sprintf("group %s does not exist", u.GroupName), status.Messages()[0])
+							assert.True(t, status.HasChanges())
+						} else {
+							assert.EqualError(t, err, "user: not supported on this system")
+						}
+					})
+
+					t.Run("add user with group name", func(t *testing.T) {
+						u.Username = fakeUsername
+						u.GroupName = currGroupName
+						status, err := u.Check(fakerenderer.New())
+
+						if runtime.GOOS == "linux" {
+							assert.NoError(t, err)
+							assert.Equal(t, "add user", status.Messages()[0])
+							assert.Equal(t, resource.StatusWillChange, status.StatusCode())
+							assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
+							assert.Equal(t, fmt.Sprintf("user %s", u.Username), status.Diffs()["user"].Current())
+							assert.True(t, status.HasChanges())
+						} else {
+							assert.EqualError(t, err, "user: not supported on this system")
+						}
+					})
+
+					t.Run("no add-group gid does not exist", func(t *testing.T) {
+						u.Username = fakeUsername
+						u.GID = fakeGID
+						status, err := u.Check(fakerenderer.New())
+
+						if runtime.GOOS == "linux" {
+							assert.EqualError(t, err, fmt.Sprintf("cannot add user %s", u.Username))
+							assert.Equal(t, resource.StatusCantChange, status.StatusCode())
+							assert.Equal(t, fmt.Sprintf("group gid %s does not exist", u.GID), status.Messages()[0])
+							assert.True(t, status.HasChanges())
+						} else {
+							assert.EqualError(t, err, "user: not supported on this system")
+						}
+					})
+
+					t.Run("add user with group gid", func(t *testing.T) {
+						u.Username = fakeUsername
+						u.GID = currGID
+						status, err := u.Check(fakerenderer.New())
+
+						if runtime.GOOS == "linux" {
+							assert.NoError(t, err)
+							assert.Equal(t, "add user", status.Messages()[0])
+							assert.Equal(t, resource.StatusWillChange, status.StatusCode())
+							assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
+							assert.Equal(t, fmt.Sprintf("user %s", u.Username), status.Diffs()["user"].Current())
+							assert.True(t, status.HasChanges())
+						} else {
+							assert.EqualError(t, err, "user: not supported on this system")
+						}
+					})
 				})
-
-				t.Run("add user with group gid", func(t *testing.T) {
-					u.Username = fakeUsername
-					u.GID = currGID
+			})
+			t.Run("modify tests", func(t *testing.T) {
+				t.Run("no modify-no options provided", func(t *testing.T) {
+					u.Username = currUsername
 					status, err := u.Check(fakerenderer.New())
 
 					if runtime.GOOS == "linux" {
 						assert.NoError(t, err)
-						assert.Equal(t, "user does not exist", status.Messages()[0])
-						assert.Equal(t, resource.StatusWillChange, status.StatusCode())
-						assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
-						assert.Equal(t, fmt.Sprintf("user %s", u.Username), status.Diffs()["user"].Current())
-						assert.True(t, status.HasChanges())
+						assert.Equal(t, resource.StatusNoChange, status.StatusCode())
+						assert.Equal(t, fmt.Sprintf("no modifications indicated for user %s", u.Username), status.Messages()[0])
+						assert.False(t, status.HasChanges())
 					} else {
 						assert.EqualError(t, err, "user: not supported on this system")
 					}
@@ -213,50 +216,17 @@ func TestCheck(t *testing.T) {
 		})
 
 		t.Run("uid provided", func(t *testing.T) {
-			t.Run("add user with uid", func(t *testing.T) {
-				u.Username = fakeUsername
-				u.UID = fakeUID
-				status, err := u.Check(fakerenderer.New())
+			t.Run("add tests with uid", func(t *testing.T) {
 
-				if runtime.GOOS == "linux" {
-					assert.NoError(t, err)
-					assert.Equal(t, resource.StatusWillChange, status.StatusCode())
-					assert.Equal(t, fmt.Sprintf("user name and uid do not exist"), status.Messages()[0])
-					assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
-					assert.Equal(t, fmt.Sprintf("user %s with uid %s", u.Username, u.UID), status.Diffs()["user"].Current())
-					assert.True(t, status.HasChanges())
-				} else {
-					assert.EqualError(t, err, "user: not supported on this system")
-				}
-			})
-
-			t.Run("group provided", func(t *testing.T) {
-				t.Run("no add-group name does not exist", func(t *testing.T) {
+				t.Run("add user with uid", func(t *testing.T) {
 					u.Username = fakeUsername
 					u.UID = fakeUID
-					u.GroupName = fakeGroupName
-					status, err := u.Check(fakerenderer.New())
-
-					if runtime.GOOS == "linux" {
-						assert.EqualError(t, err, fmt.Sprintf("cannot add user %s with uid %s", u.Username, u.UID))
-						assert.Equal(t, resource.StatusCantChange, status.StatusCode())
-						assert.Equal(t, fmt.Sprintf("group %s does not exist", u.GroupName), status.Messages()[0])
-						assert.True(t, status.HasChanges())
-					} else {
-						assert.EqualError(t, err, "user: not supported on this system")
-					}
-				})
-
-				t.Run("add user with group name", func(t *testing.T) {
-					u.Username = fakeUsername
-					u.UID = fakeUID
-					u.GroupName = currGroupName
 					status, err := u.Check(fakerenderer.New())
 
 					if runtime.GOOS == "linux" {
 						assert.NoError(t, err)
 						assert.Equal(t, resource.StatusWillChange, status.StatusCode())
-						assert.Equal(t, fmt.Sprintf("user name and uid do not exist"), status.Messages()[0])
+						assert.Equal(t, fmt.Sprintf("add user with uid"), status.Messages()[0])
 						assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
 						assert.Equal(t, fmt.Sprintf("user %s with uid %s", u.Username, u.UID), status.Diffs()["user"].Current())
 						assert.True(t, status.HasChanges())
@@ -265,92 +235,132 @@ func TestCheck(t *testing.T) {
 					}
 				})
 
-				t.Run("no add-group gid does not exist", func(t *testing.T) {
+				t.Run("group provided", func(t *testing.T) {
+					t.Run("no add-group name does not exist", func(t *testing.T) {
+						u.Username = fakeUsername
+						u.UID = fakeUID
+						u.GroupName = fakeGroupName
+						status, err := u.Check(fakerenderer.New())
+
+						if runtime.GOOS == "linux" {
+							assert.EqualError(t, err, fmt.Sprintf("cannot add user %s with uid %s", u.Username, u.UID))
+							assert.Equal(t, resource.StatusCantChange, status.StatusCode())
+							assert.Equal(t, fmt.Sprintf("group %s does not exist", u.GroupName), status.Messages()[0])
+							assert.True(t, status.HasChanges())
+						} else {
+							assert.EqualError(t, err, "user: not supported on this system")
+						}
+					})
+
+					t.Run("add user with group name", func(t *testing.T) {
+						u.Username = fakeUsername
+						u.UID = fakeUID
+						u.GroupName = currGroupName
+						status, err := u.Check(fakerenderer.New())
+
+						if runtime.GOOS == "linux" {
+							assert.NoError(t, err)
+							assert.Equal(t, resource.StatusWillChange, status.StatusCode())
+							assert.Equal(t, fmt.Sprintf("add user with uid"), status.Messages()[0])
+							assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
+							assert.Equal(t, fmt.Sprintf("user %s with uid %s", u.Username, u.UID), status.Diffs()["user"].Current())
+							assert.True(t, status.HasChanges())
+						} else {
+							assert.EqualError(t, err, "user: not supported on this system")
+						}
+					})
+
+					t.Run("no add-group gid does not exist", func(t *testing.T) {
+						u.Username = fakeUsername
+						u.UID = fakeUID
+						u.GID = fakeGID
+						status, err := u.Check(fakerenderer.New())
+
+						if runtime.GOOS == "linux" {
+							assert.EqualError(t, err, fmt.Sprintf("cannot add user %s with uid %s", u.Username, u.UID))
+							assert.Equal(t, resource.StatusCantChange, status.StatusCode())
+							assert.Equal(t, fmt.Sprintf("group gid %s does not exist", u.GID), status.Messages()[0])
+							assert.True(t, status.HasChanges())
+						} else {
+							assert.EqualError(t, err, "user: not supported on this system")
+						}
+					})
+
+					t.Run("add user with group gid", func(t *testing.T) {
+						gid, err := setGid()
+						if err != nil {
+							panic(err)
+						}
+						u.Username = fakeUsername
+						u.UID = fakeUID
+						u.GID = gid
+						status, err := u.Check(fakerenderer.New())
+
+						if runtime.GOOS == "linux" {
+							assert.NoError(t, err)
+							assert.Equal(t, resource.StatusWillChange, status.StatusCode())
+							assert.Equal(t, fmt.Sprintf("add user with uid"), status.Messages()[0])
+							assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
+							assert.Equal(t, fmt.Sprintf("user %s with uid %s", u.Username, u.UID), status.Diffs()["user"].Current())
+							assert.True(t, status.HasChanges())
+						} else {
+							assert.EqualError(t, err, "user: not supported on this system")
+						}
+					})
+				})
+
+				t.Run("no add-user uid already exists", func(t *testing.T) {
 					u.Username = fakeUsername
-					u.UID = fakeUID
-					u.GID = fakeGID
+					u.UID = currUID
 					status, err := u.Check(fakerenderer.New())
 
 					if runtime.GOOS == "linux" {
 						assert.EqualError(t, err, fmt.Sprintf("cannot add user %s with uid %s", u.Username, u.UID))
 						assert.Equal(t, resource.StatusCantChange, status.StatusCode())
-						assert.Equal(t, fmt.Sprintf("group gid %s does not exist", u.GID), status.Messages()[0])
+						assert.Equal(t, fmt.Sprintf("user uid %s already exists", u.UID), status.Messages()[0])
+						assert.True(t, status.HasChanges())
+					} else {
+						assert.EqualError(t, err, "user: not supported on this system")
+					}
+				})
+			})
+			t.Run("modify tests with uid", func(t *testing.T) {
+
+				t.Run("modify user uid", func(t *testing.T) {
+					u.Username = currUsername
+					u.UID = fakeUID
+					status, err := u.Check(fakerenderer.New())
+
+					if runtime.GOOS == "linux" {
+						assert.NoError(t, err)
+						assert.Equal(t, resource.StatusWillChange, status.StatusCode())
+						assert.Equal(t, "modify user uid", status.Messages()[0])
+						assert.Equal(t, fmt.Sprintf("user %s with uid %s", u.Username, currUID), status.Diffs()["user"].Original())
+						assert.Equal(t, fmt.Sprintf("user %s with uid %s", u.Username, u.UID), status.Diffs()["user"].Current())
 						assert.True(t, status.HasChanges())
 					} else {
 						assert.EqualError(t, err, "user: not supported on this system")
 					}
 				})
 
-				t.Run("add user with group gid", func(t *testing.T) {
-					gid, err := setGid()
+				t.Run("no modify-user name and uid belong to different users", func(t *testing.T) {
+					uid, err := setUid()
 					if err != nil {
 						panic(err)
 					}
-					u.Username = fakeUsername
-					u.UID = fakeUID
-					u.GID = gid
+					u.Username = currUsername
+					u.UID = uid
 					status, err := u.Check(fakerenderer.New())
 
 					if runtime.GOOS == "linux" {
-						assert.NoError(t, err)
-						assert.Equal(t, resource.StatusWillChange, status.StatusCode())
-						assert.Equal(t, fmt.Sprintf("user name and uid do not exist"), status.Messages()[0])
-						assert.Equal(t, string(user.StateAbsent), status.Diffs()["user"].Original())
-						assert.Equal(t, fmt.Sprintf("user %s with uid %s", u.Username, u.UID), status.Diffs()["user"].Current())
+						assert.EqualError(t, err, fmt.Sprintf("cannot modify user %s with uid %s", u.Username, u.UID))
+						assert.Equal(t, resource.StatusCantChange, status.StatusCode())
+						assert.Equal(t, fmt.Sprintf("user %s and uid %s belong to different users", u.Username, u.UID), status.Messages()[0])
 						assert.True(t, status.HasChanges())
 					} else {
 						assert.EqualError(t, err, "user: not supported on this system")
 					}
 				})
-			})
-
-			t.Run("no add-user uid already exists", func(t *testing.T) {
-				u.Username = fakeUsername
-				u.UID = currUID
-				status, err := u.Check(fakerenderer.New())
-
-				if runtime.GOOS == "linux" {
-					assert.EqualError(t, err, fmt.Sprintf("cannot add user %s with uid %s", u.Username, u.UID))
-					assert.Equal(t, resource.StatusCantChange, status.StatusCode())
-					assert.Equal(t, fmt.Sprintf("user uid %s already exists", u.UID), status.Messages()[0])
-					assert.True(t, status.HasChanges())
-				} else {
-					assert.EqualError(t, err, "user: not supported on this system")
-				}
-			})
-
-			t.Run("no add-user name already exists", func(t *testing.T) {
-				u.Username = currUsername
-				u.UID = fakeUID
-				status, err := u.Check(fakerenderer.New())
-
-				if runtime.GOOS == "linux" {
-					assert.EqualError(t, err, fmt.Sprintf("cannot add user %s with uid %s", u.Username, u.UID))
-					assert.Equal(t, resource.StatusCantChange, status.StatusCode())
-					assert.Equal(t, fmt.Sprintf("user %s already exists", u.Username), status.Messages()[0])
-					assert.True(t, status.HasChanges())
-				} else {
-					assert.EqualError(t, err, "user: not supported on this system")
-				}
-			})
-
-			t.Run("no add-user name and uid belong to different users", func(t *testing.T) {
-				uid, err := setUid()
-				if err != nil {
-					panic(err)
-				}
-				u.Username = currUsername
-				u.UID = uid
-				status, err := u.Check(fakerenderer.New())
-
-				if runtime.GOOS == "linux" {
-					assert.EqualError(t, err, fmt.Sprintf("cannot add user %s with uid %s", u.Username, u.UID))
-					assert.Equal(t, resource.StatusCantChange, status.StatusCode())
-					assert.Equal(t, fmt.Sprintf("user %s and uid %s belong to different users", u.Username, u.UID), status.Messages()[0])
-					assert.True(t, status.HasChanges())
-				} else {
-					assert.EqualError(t, err, "user: not supported on this system")
-				}
 			})
 		})
 	})

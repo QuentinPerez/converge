@@ -90,8 +90,10 @@ func NewUser(system SystemUtils) *User {
 // Check if a user user exists
 func (u *User) Check(resource.Renderer) (resource.TaskStatus, error) {
 	var (
-		userByID *user.User
-		uidErr   error
+		userByID      *user.User
+		uidErr        error
+		userByNewName *user.User
+		newNameErr    error
 	)
 
 	// lookup the user by name and lookup the user by uid
@@ -101,6 +103,9 @@ func (u *User) Check(resource.Renderer) (resource.TaskStatus, error) {
 	userByName, nameErr := u.system.Lookup(u.Username)
 	if u.UID != "" {
 		userByID, uidErr = u.system.LookupID(u.UID)
+	}
+	if u.NewUsername != "" {
+		userByNewName, newNameErr = u.system.Lookup(u.NewUsername)
 	}
 
 	status := &resource.Status{}
@@ -112,14 +117,19 @@ func (u *User) Check(resource.Renderer) (resource.TaskStatus, error) {
 
 	switch u.State {
 	case StatePresent:
+		_, nameNotFound := nameErr.(user.UnknownUserError)
+
 		switch {
-		case u.UID == "":
-			_, nameNotFound := nameErr.(user.UnknownUserError)
-
+		case u.UID != "" && userByName != nil && userByID != nil && (userByName.Name != userByID.Name || userByName.Uid != userByID.Uid):
+			status.Level = resource.StatusCantChange
+			status.Output = append(status.Output, fmt.Sprintf("user %s and uid %s belong to different users", u.Username, u.UID))
+			return status, fmt.Errorf("cannot modify user %s with uid %s", u.Username, u.UID)
+		case u.UID != "" && userByName != nil && userByID != nil && *userByName == *userByID:
+			status.Output = append(status.Output, fmt.Sprintf("user %s with uid %s already exists", u.Username, u.UID))
+		case nameNotFound:
+			// Add User
 			switch {
-			case userByName != nil:
-				status.Output = append(status.Output, fmt.Sprintf("user %s already exists", u.Username))
-			case nameNotFound:
+			case u.UID == "":
 				switch {
 				case u.GroupName != "":
 					_, err := u.system.LookupGroup(u.GroupName)
@@ -137,50 +147,156 @@ func (u *User) Check(resource.Renderer) (resource.TaskStatus, error) {
 					}
 				}
 				status.Level = resource.StatusWillChange
-				status.Output = append(status.Output, "user does not exist")
+				status.Output = append(status.Output, "add user")
 				status.AddDifference("user", string(StateAbsent), fmt.Sprintf("user %s", u.Username), "")
-			}
-		case u.UID != "":
-			_, nameNotFound := nameErr.(user.UnknownUserError)
-			_, uidNotFound := uidErr.(user.UnknownUserIdError)
+			case u.UID != "":
+				_, uidNotFound := uidErr.(user.UnknownUserIdError)
 
-			switch {
-			case nameNotFound && uidNotFound:
 				switch {
-				case u.GroupName != "":
-					_, err := u.system.LookupGroup(u.GroupName)
-					if err != nil {
-						status.Level = resource.StatusCantChange
-						status.Output = append(status.Output, fmt.Sprintf("group %s does not exist", u.GroupName))
-						return status, fmt.Errorf("cannot add user %s with uid %s", u.Username, u.UID)
+				case uidNotFound:
+					switch {
+					case u.GroupName != "":
+						_, err := u.system.LookupGroup(u.GroupName)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group %s does not exist", u.GroupName))
+							return status, fmt.Errorf("cannot add user %s with uid %s", u.Username, u.UID)
+						}
+					case u.GID != "":
+						_, err := u.system.LookupGroupID(u.GID)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group gid %s does not exist", u.GID))
+							return status, fmt.Errorf("cannot add user %s with uid %s", u.Username, u.UID)
+						}
 					}
-				case u.GID != "":
-					_, err := u.system.LookupGroupID(u.GID)
-					if err != nil {
-						status.Level = resource.StatusCantChange
-						status.Output = append(status.Output, fmt.Sprintf("group gid %s does not exist", u.GID))
-						return status, fmt.Errorf("cannot add user %s with uid %s", u.Username, u.UID)
-					}
+					status.Level = resource.StatusWillChange
+					status.Output = append(status.Output, "add user with uid")
+					status.AddDifference("user", string(StateAbsent), fmt.Sprintf("user %s with uid %s", u.Username, u.UID), "")
+				case userByID != nil:
+					status.Level = resource.StatusCantChange
+					status.Output = append(status.Output, fmt.Sprintf("user uid %s already exists", u.UID))
+					return status, fmt.Errorf("cannot add user %s with uid %s", u.Username, u.UID)
 				}
-				status.Level = resource.StatusWillChange
-				status.Output = append(status.Output, "user name and uid do not exist")
-				status.AddDifference("user", string(StateAbsent), fmt.Sprintf("user %s with uid %s", u.Username, u.UID), "")
-			case nameNotFound:
-				status.Level = resource.StatusCantChange
-				status.Output = append(status.Output, fmt.Sprintf("user uid %s already exists", u.UID))
-				return status, fmt.Errorf("cannot add user %s with uid %s", u.Username, u.UID)
-			case uidNotFound:
-				status.Level = resource.StatusCantChange
-				status.Output = append(status.Output, fmt.Sprintf("user %s already exists", u.Username))
-				return status, fmt.Errorf("cannot add user %s with uid %s", u.Username, u.UID)
-			case userByName != nil && userByID != nil && userByName.Name != userByID.Name || userByName.Uid != userByID.Uid:
-				status.Level = resource.StatusCantChange
-				status.Output = append(status.Output, fmt.Sprintf("user %s and uid %s belong to different users", u.Username, u.UID))
-				return status, fmt.Errorf("cannot add user %s with uid %s", u.Username, u.UID)
-			case userByName != nil && userByID != nil && *userByName == *userByID:
-				status.Level = resource.StatusCantChange
-				status.Output = append(status.Output, fmt.Sprintf("user %s with uid %s already exists", u.Username, u.UID))
-				return status, fmt.Errorf("cannot add user %s with uid %s", u.Username, u.UID)
+			}
+		case userByName != nil:
+			// Modify User
+			switch {
+			case u.NewUsername == "" && u.UID == "":
+				if noOptionsSet(u) {
+					status.Output = append(status.Output, fmt.Sprintf("no modifications indicated for user %s", u.Username))
+				} else {
+					switch {
+					case u.GroupName != "":
+						_, err := u.system.LookupGroup(u.GroupName)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group %s does not exist", u.GroupName))
+							return status, fmt.Errorf("cannot modify user %s", u.Username)
+						}
+					case u.GID != "":
+						_, err := u.system.LookupGroupID(u.GID)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group gid %s does not exist", u.GID))
+							return status, fmt.Errorf("cannot modify user %s", u.Username)
+						}
+					}
+					status.Level = resource.StatusWillChange
+					status.Output = append(status.Output, "modify user")
+				}
+			case u.NewUsername != "" && u.UID == "":
+				_, newNameNotFound := newNameErr.(user.UnknownUserError)
+
+				switch {
+				case userByNewName != nil:
+					status.Level = resource.StatusCantChange
+					status.Output = append(status.Output, fmt.Sprintf("user modify: user %s already exists", u.NewUsername))
+					return status, errors.New("cannot modify user")
+				case newNameNotFound:
+					switch {
+					case u.GroupName != "":
+						_, err := u.system.LookupGroup(u.GroupName)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group %s does not exist", u.GroupName))
+							return status, fmt.Errorf("cannot modify user %s", u.Username)
+						}
+					case u.GID != "":
+						_, err := u.system.LookupGroupID(u.GID)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group gid %s does not exist", u.GID))
+							return status, fmt.Errorf("cannot modify user %s", u.Username)
+						}
+					}
+					status.Level = resource.StatusWillChange
+					status.Output = append(status.Output, "modify user name")
+					status.AddDifference("user", fmt.Sprintf("user %s", u.Username), fmt.Sprintf("user %s", u.NewUsername), "")
+				}
+			case u.NewUsername == "" && u.UID != "":
+				_, uidNotFound := uidErr.(user.UnknownUserIdError)
+
+				switch {
+				case userByID != nil:
+					status.Level = resource.StatusCantChange
+					status.Output = append(status.Output, fmt.Sprintf("user modify: user uid %s already exists", u.UID))
+					return status, errors.New("cannot modify user")
+				case uidNotFound:
+					switch {
+					case u.GroupName != "":
+						_, err := u.system.LookupGroup(u.GroupName)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group %s does not exist", u.GroupName))
+							return status, fmt.Errorf("cannot modify user %s", u.Username)
+						}
+					case u.GID != "":
+						_, err := u.system.LookupGroupID(u.GID)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group gid %s does not exist", u.GID))
+							return status, fmt.Errorf("cannot modify user %s", u.Username)
+						}
+					}
+					status.Level = resource.StatusWillChange
+					status.Output = append(status.Output, "modify user uid")
+					status.AddDifference("user", fmt.Sprintf("user %s with uid %s", u.Username, userByName.Uid), fmt.Sprintf("user %s with uid %s", u.Username, u.UID), "")
+				}
+			case u.NewUsername != "" && u.UID != "":
+				_, newNameNotFound := newNameErr.(user.UnknownUserError)
+				_, uidNotFound := uidErr.(user.UnknownUserIdError)
+
+				switch {
+				case userByNewName != nil:
+					status.Level = resource.StatusCantChange
+					status.Output = append(status.Output, fmt.Sprintf("user modify: user %s already exists", u.NewUsername))
+					return status, errors.New("cannot modify user")
+				case userByID != nil:
+					status.Level = resource.StatusCantChange
+					status.Output = append(status.Output, fmt.Sprintf("user modify: user uid %s already exists", u.UID))
+					return status, errors.New("cannot modify user")
+				case newNameNotFound && uidNotFound:
+					switch {
+					case u.GroupName != "":
+						_, err := u.system.LookupGroup(u.GroupName)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group %s does not exist", u.GroupName))
+							return status, fmt.Errorf("cannot modify user %s", u.Username)
+						}
+					case u.GID != "":
+						_, err := u.system.LookupGroupID(u.GID)
+						if err != nil {
+							status.Level = resource.StatusCantChange
+							status.Output = append(status.Output, fmt.Sprintf("group gid %s does not exist", u.GID))
+							return status, fmt.Errorf("cannot modify user %s", u.Username)
+						}
+					}
+					status.Level = resource.StatusWillChange
+					status.Output = append(status.Output, "modify user name and uid")
+					status.AddDifference("user", fmt.Sprintf("user %s with uid %s", u.Username, userByName.Uid), fmt.Sprintf("user %s with uid %s", u.NewUsername, u.UID), "")
+				}
 			}
 		}
 	case StateAbsent:
@@ -388,4 +504,16 @@ func SetModUserOptions(u *User) *ModUserOptions {
 	}
 
 	return options
+}
+
+func noOptionsSet(u *User) bool {
+	switch {
+	case u.UID != "":
+	case u.GroupName != "":
+	case u.GID != "":
+	case u.Name != "":
+	case u.HomeDir != "":
+		return false
+	}
+	return true
 }
