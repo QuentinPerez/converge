@@ -211,6 +211,19 @@
 
 
 
+<a  title="Platform Detection" href="http://converge.aster.is/platform/">
+  
+  Platform Detection
+</a>
+
+
+
+        
+        
+        
+
+
+
 <a  title="Getting Started" href="http://converge.aster.is/getting-started/">
   
   Getting Started
@@ -240,6 +253,19 @@
 <a  title="Using Dependencies" href="http://converge.aster.is/dependencies/">
   
   Using Dependencies
+</a>
+
+
+
+        
+        
+        
+
+
+
+<a  title="Params and Templates" href="http://converge.aster.is/params-and-templates/">
+  
+  Params and Templates
 </a>
 
 
@@ -468,6 +494,32 @@
 
 
         
+        
+        
+
+
+
+<a  title="wait.port" href="http://converge.aster.is/resources/wait-port/">
+  
+  wait.port
+</a>
+
+
+
+        
+        
+        
+
+
+
+<a  title="wait.query" href="http://converge.aster.is/resources/wait-query/">
+  
+  wait.query
+</a>
+
+
+
+        
     </ul>
     
 </li>
@@ -590,6 +642,22 @@ the Status will always show up as having changes.</li>
 the Status will always show as having changes.</li>
 </ol>
 
+<h3 id="dealing-with-errors">Dealing with Errors</h3>
+
+<p>The default <code>Status</code> implementation has a <code>SetError(error)</code> method. When called,
+it sets an appropriate error level and an internal error state that will be
+presented to the user. You can also use the common Go patterm of returning <code>nil,
+err</code> in your <code>Check</code> and <code>Apply</code> statements. Converge will call <code>SetError(err)</code>
+automatically in this case. This gives you two options:</p>
+
+<ol>
+<li>call <code>SetError</code> yourself.</li>
+<li>return an error, which will be handled for you.</li>
+</ol>
+
+<p>You shoud choose <em>one</em> of these options and do it consistently across as much of
+your code as possible.</p>
+
 <h2 id="preparer">Preparer</h2>
 
 <p>Before you can use your resource, it has to be deserialized from HCL. For this,
@@ -604,31 +672,92 @@ state. In our case, our Resource would look like this (they&rsquo;re typically c
     Apply string `hcl:&quot;apply&quot;`
 }
 
-func (p *Preparer) Render(r *resource.Renderer) (resource.Task, error) {
-    check, err := render.Render(&quot;check&quot;, p.Check)
-    if err != nil {
-        return nil, err
-    }
-
-    apply, err := render.Render(&quot;apply&quot;, p.Apply)
-    if err != nil {
-        return nil, err
-    }
-
+func (p *Preparer) Prepare(resource.Renderer) (resource.Task, error) {
     return &amp;MyShellTask{CheckStmt: check, ApplyStmt: apply}, nil
 }
 </code></pre>
 
-<p>&ldquo;What&rsquo;s the renderer doing there,&rdquo; you may ask, &ldquo;and how can I accept non-string
-values?&rdquo; If you need to accept non-string parameters directly, the fields should
-be <code>interface{}</code>s, and you should do all your type casting, conversion, and
-validation in Prepare before the values are passed down to your Task.</p>
+<p>To get values other than strings (bools, ints, et cetera), you just need to
+specify them. Converge will render the values and parse them from strings, if
+necessary.</p>
+
+<h3 id="zero-values">Zero Values</h3>
+
+<p>Sometimes you need to disambiguate between a zero value the user provided and
+one that Go did. In this case, use a pointer to that type. For example, your
+preparer may look like this:</p>
+
+<pre><code class="language-go">type Preparer struct {
+    Field int `hcl:&quot;field&quot;`
+}
+</code></pre>
+
+<p>But in this case, the value of <code>Field</code> would be zero in each of the two calls
+below!</p>
+
+<pre><code class="language-hcl">mymodule &quot;test&quot; {
+    field = 0
+}
+
+mymodule &quot;test&quot; {
+    # field is unspecified!
+}
+</code></pre>
+
+<p>If you need to tell which case happened, use a pointer. In other words, your
+preparer will now look like this:</p>
+
+<pre><code class="language-go">type Preparer struct {
+    Field *int `hcl:&quot;field&quot;`
+}
+</code></pre>
+
+<p>If the user provides a zero, the value will be <code>*0</code>. Otherwise, it wil be <code>nil</code>.</p>
+
+<h3 id="struct-tags">Struct Tags</h3>
+
+<p>Other than <code>hcl</code> (which is used to specify the field name you&rsquo;ll accept) the
+following struct tags control the values you get:</p>
+
+<ul>
+<li><p><code>doc_type</code>: control the exact printed type in the documentation. Example:
+fields that accept
+a <a href="https://golang.org/pkg/time/#ParseDuration">duration string</a> (such
+as <a href="http://converge.aster.is/resources/task/">task.timeout</a>) are commonly strings
+with a <code>doc_type</code> of &ldquo;duration string&rdquo;</p></li>
+
+<li><p><code>base</code>: used with numeric types to indicate a base for parsing. Does not work
+with floats. Example: <a href="http://converge.aster.is/resources/file-mode/">file.mode</a>
+needs an octal number, and specifies that in this tag.</p></li>
+</ul>
+
+<p>We can also do some basic validation tasks with tags:</p>
+
+<ul>
+<li><p><code>required</code>: one valid value: <code>true</code>. If set, this field must be set in the
+HCL, but may still have a zero value (for example, <code>int</code> can still be <code>0</code>.)
+Example: [docker.container]http://converge.aster.is/resources/docker-container/ uses
+this to require an image for the container.</p></li>
+
+<li><p><code>mutually_exclusive</code>: a comma-separated list of fields that cannot be set
+together. Example: <a href="http://converge.aster.is/resources/user-user/">user</a> uses this
+to disallow setting both <code>groupname</code> and <code>gid</code>.</p></li>
+
+<li><p><code>valid_values</code>: a comma-separated list of values that will be accepted for
+this field.
+Example: <a href="http://converge.aster.is/resources/docker-container/">docker.container</a> uses
+this to enforce status is only <code>running</code> or <code>created</code>.</p></li>
+</ul>
+
+<h3 id="the-renderer">The Renderer</h3>
 
 <p>The renderer is what allows your values to take input from the environment (like
-calls to <code>param</code> or <code>lookup</code>.) Normally you&rsquo;ll get a string value back, but when
-you get an error it is very important to return it exactly as received. Converge
-will automatically wrap the errors from Render to provide context to the user
-and to defer rendering of lookup nodes until they&rsquo;re resolved.</p>
+calls to <code>param</code> or <code>lookup</code>.) Normally you won&rsquo;t need to use this, but if
+you&rsquo;re doing something extremely custom it will be handy. If you get an error
+while using the <code>Renderer</code>, return it exactly as received or wrap it with
+<a href="https://github.com/pkg/errors"><code>errors.Wrap</code> or <code>errors.Wrapf</code></a>. Converge uses
+these signals to calculate execution order, so it needs to be able to inspect
+the returned error value.</p>
 
 <h2 id="registering">Registering</h2>
 
@@ -660,7 +789,7 @@ with both the preparer and task, then empty-import your new module in
 <nav class="pagination" aria-label="Footer">
   <div class="previous">
   
-      <a href="http://converge.aster.is/resources/user-group/" title="user.group">
+      <a href="http://converge.aster.is/params-and-templates/" title="Params and Templates">
         <span class="direction">
           Previous
         </span>
@@ -670,7 +799,7 @@ with both the preparer and task, then empty-import your new module in
           </div>
           <div class="stretch">
             <div class="title">
-              user.group
+              Params and Templates
             </div>
           </div>
         </div>
@@ -680,14 +809,14 @@ with both the preparer and task, then empty-import your new module in
 
   <div class="next">
   
-      <a href="http://converge.aster.is/resources/task/" title="task">
+      <a href="http://converge.aster.is/module-verification/" title="Module Verification">
         <span class="direction">
           Next
         </span>
         <div class="page">
           <div class="stretch">
             <div class="title">
-              task
+              Module Verification
             </div>
           </div>
           <div class="button button-next" role="button" aria-label="Next">

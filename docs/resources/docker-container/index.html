@@ -211,6 +211,19 @@
 
 
 
+<a  title="Platform Detection" href="http://converge.aster.is/platform/">
+  
+  Platform Detection
+</a>
+
+
+
+        
+        
+        
+
+
+
 <a  title="Getting Started" href="http://converge.aster.is/getting-started/">
   
   Getting Started
@@ -240,6 +253,19 @@
 <a  title="Using Dependencies" href="http://converge.aster.is/dependencies/">
   
   Using Dependencies
+</a>
+
+
+
+        
+        
+        
+
+
+
+<a  title="Params and Templates" href="http://converge.aster.is/params-and-templates/">
+  
+  Params and Templates
 </a>
 
 
@@ -468,6 +494,32 @@
 
 
         
+        
+        
+
+
+
+<a  title="wait.port" href="http://converge.aster.is/resources/wait-port/">
+  
+  wait.port
+</a>
+
+
+
+        
+        
+        
+
+
+
+<a  title="wait.query" href="http://converge.aster.is/resources/wait-query/">
+  
+  wait.query
+</a>
+
+
+
+        
     </ul>
     
 </li>
@@ -535,13 +587,13 @@ there is already a Docker daemon running on the system.</p>
 <h2 id="parameters">Parameters</h2>
 
 <ul>
-<li><code>name</code> (string)</li>
+<li><code>name</code> (required string)</li>
 </ul>
 
 <p>name of the container</p>
 
 <ul>
-<li><code>image</code> (string)</li>
+<li><code>image</code> (required string)</li>
 </ul>
 
 <p>the image name or ID to use for the container</p>
@@ -568,7 +620,7 @@ there is already a Docker daemon running on the system.</p>
 <li><code>env</code> (map of string to string)</li>
 </ul>
 
-<p>set environmnet variables in the container</p>
+<p>set environment variables in the container</p>
 
 <ul>
 <li><code>expose</code> (list of strings)</li>
@@ -622,7 +674,9 @@ Specified as a boolean value</p>
 <li><code>status</code> (string)</li>
 </ul>
 
-<p>the desired status of the container. running|created</p>
+<p>Valid values: <code>running</code> and <code>created</code></p>
+
+<p>the desired status of the container.</p>
 
 <ul>
 <li><code>force</code> (bool)</li>
@@ -649,7 +703,7 @@ container exists. Specified as a boolean value</p>
 <nav class="pagination" aria-label="Footer">
   <div class="previous">
   
-      <a href="http://converge.aster.is/resources/task/" title="task">
+      <a href="http://converge.aster.is/resources/user-user/" title="user.user">
         <span class="direction">
           Previous
         </span>
@@ -659,7 +713,7 @@ container exists. Specified as a boolean value</p>
           </div>
           <div class="stretch">
             <div class="title">
-              task
+              user.user
             </div>
           </div>
         </div>
@@ -669,14 +723,14 @@ container exists. Specified as a boolean value</p>
 
   <div class="next">
   
-      <a href="http://converge.aster.is/resources/param/" title="param">
+      <a href="http://converge.aster.is/resources/docker-image/" title="docker.image">
         <span class="direction">
           Next
         </span>
         <div class="page">
           <div class="stretch">
             <div class="title">
-              param
+              docker.image
             </div>
           </div>
           <div class="button button-next" role="button" aria-label="Next">

@@ -211,6 +211,19 @@
 
 
 
+<a  title="Platform Detection" href="http://converge.aster.is/platform/">
+  
+  Platform Detection
+</a>
+
+
+
+        
+        
+        
+
+
+
 <a  title="Getting Started" href="http://converge.aster.is/getting-started/">
   
   Getting Started
@@ -240,6 +253,19 @@
 <a  title="Using Dependencies" href="http://converge.aster.is/dependencies/">
   
   Using Dependencies
+</a>
+
+
+
+        
+        
+        
+
+
+
+<a  title="Params and Templates" href="http://converge.aster.is/params-and-templates/">
+  
+  Params and Templates
 </a>
 
 
@@ -468,6 +494,32 @@
 
 
         
+        
+        
+
+
+
+<a  title="wait.port" href="http://converge.aster.is/resources/wait-port/">
+  
+  wait.port
+</a>
+
+
+
+        
+        
+        
+
+
+
+<a  title="wait.query" href="http://converge.aster.is/resources/wait-query/">
+  
+  wait.query
+</a>
+
+
+
+        
     </ul>
     
 </li>
@@ -525,23 +577,31 @@ user.group &quot;group&quot; {
 <h2 id="parameters">Parameters</h2>
 
 <ul>
-<li><code>gid</code> (string)</li>
+<li><code>gid</code> (optional uint32)</li>
 </ul>
 
 <p>Gid is the group gid.</p>
 
 <ul>
-<li><code>name</code> (string)</li>
+<li><code>name</code> (required string)</li>
 </ul>
 
 <p>Name is the group name.</p>
 
 <ul>
-<li><code>state</code> (string)</li>
+<li><code>new_name</code> (string)</li>
 </ul>
 
-<p>State is whether the group should be present.
-Options are present and absent; default is present.</p>
+<p>NewName is used when modifying a group.
+The group Name will be changed to NewName.</p>
+
+<ul>
+<li><code>state</code> (State)</li>
+</ul>
+
+<p>Valid values: <code>present</code> and <code>absent</code></p>
+
+<p>State is whether the group should be present.</p>
 
 
 			<aside class="copyright" role="note">
@@ -560,34 +620,18 @@ Options are present and absent; default is present.</p>
 <nav class="pagination" aria-label="Footer">
   <div class="previous">
   
-      <a href="http://converge.aster.is/resources/user-user/" title="user.user">
-        <span class="direction">
-          Previous
-        </span>
-        <div class="page">
-          <div class="button button-previous" role="button" aria-label="Previous">
-            <i class="icon icon-back"></i>
-          </div>
-          <div class="stretch">
-            <div class="title">
-              user.user
-            </div>
-          </div>
-        </div>
-      </a>
-  
   </div>
 
   <div class="next">
   
-      <a href="http://converge.aster.is/resource-authors-guide/" title="Resource Authors Guide">
+      <a href="http://converge.aster.is/resources/user-user/" title="user.user">
         <span class="direction">
           Next
         </span>
         <div class="page">
           <div class="stretch">
             <div class="title">
-              Resource Authors Guide
+              user.user
             </div>
           </div>
           <div class="button button-next" role="button" aria-label="Next">
