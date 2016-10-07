@@ -10,12 +10,12 @@ engines:
     enabled: true
 
   markdownlint:
-    enabled: true
+    enabled: false
     checks:
     #duplicate headers are used in CHANGELOG
       MD024:
-        enabled: false 
-  
+        enabled: false
+
   shellcheck:
     enabled: true
 
